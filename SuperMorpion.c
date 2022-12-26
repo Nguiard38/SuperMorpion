@@ -763,13 +763,13 @@ int partie(superMorpion supPartie, bool aAff)
         coup nextCoup;
         if(supPartie.tour == 1)
         {
-            nextCoup =  min_max(supPartie, 1, 0, 4, INT_MAX, heuristicAlea1000, false).move;
+            nextCoup =  min_max(supPartie, 1, 0, 6, INT_MAX, heuristic, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
         else
         {
-            nextCoup =  min_max(supPartie, -1, 0, 4, INT_MIN, heuristic, false).move;
+            nextCoup =  min_max(supPartie, -1, 0, 6, INT_MIN, heuristic, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
@@ -840,7 +840,16 @@ void print_prochain(superMorpion supPartie)
 
 int main()
 {
+    float temps;
+    clock_t t1, t2;
+
+    t1 = clock();
+
     srand(time(NULL));
     parties(1, true);
+    
+    t2 = clock();
+    temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+    printf("temps = %f\n", temps);
 
 }
