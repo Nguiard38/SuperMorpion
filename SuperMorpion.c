@@ -411,10 +411,25 @@ int heuristic(superMorpion supPartie)
 
 int partieAlea(superMorpion supPartie, bool aAff);
 
-int heuristicAlea1000(superMorpion supPartie)
+int heuristicAlea10(superMorpion supPartie)
 {
     int score = 0;
-    for(int k = 0; k < 100; k++)
+    for(int k = 0; k < 5; k++)
+    {
+        int res = partieAlea(supPartie, false);
+        if(res != -10)
+        {
+            score = score + res;
+        }
+        
+    }
+    return score;
+}
+
+int heuristicAlea100(superMorpion supPartie)
+{
+    int score = 0;
+    for(int k = 0; k < 50; k++)
     {
         int res = partieAlea(supPartie, false);
         if(res != -10)
@@ -763,13 +778,13 @@ int partie(superMorpion supPartie, bool aAff)
         coup nextCoup;
         if(supPartie.tour == 1)
         {
-            nextCoup =  min_max(supPartie, 1, 0, 6, INT_MAX, heuristic, false).move;
+            nextCoup =  min_max(supPartie, 1, 0, 3, INT_MAX, heuristicAlea100, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
         else
         {
-            nextCoup =  min_max(supPartie, -1, 0, 6, INT_MIN, heuristic, false).move;
+            nextCoup =  min_max(supPartie, -1, 0, 6, INT_MIN, heuristicAlea10, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
@@ -846,8 +861,8 @@ int main()
     t1 = clock();
 
     srand(time(NULL));
-    parties(1, true);
-    
+    parties(5, true);
+
     t2 = clock();
     temps = (float)(t2-t1)/CLOCKS_PER_SEC;
     printf("temps = %f\n", temps);
