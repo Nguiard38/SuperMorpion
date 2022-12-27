@@ -99,27 +99,21 @@ void majGagnant(morpion* partie)
 
 
     int lignes[3];
+    int collones[3];
+    int diag1 = 0;
+    int diag2 = 0;
     for(int i = 0; i < 3; i++)
     {
         lignes[i] = 0;
-        for(int j = 0; j < 3; j++)
-        {
-            lignes[i] = lignes[i] + partie->plat[i*3 + j];
-        }
-    }
-
-    int collones[3];
-    for(int i = 0; i < 3; i++)
-    {
         collones[i] = 0;
         for(int j = 0; j < 3; j++)
         {
+            lignes[i] = lignes[i] + partie->plat[i*3 + j];
             collones[i] = collones[i] + partie->plat[i + j*3];
         }
+        diag1 = diag1 + partie->plat[i*4];
+        diag2 = diag2 + partie->plat[(i+1)*2];
     }
-
-    int diag1 = partie->plat[0] + partie->plat[4] + partie->plat[8];
-    int diag2 = partie->plat[2] + partie->plat[4] + partie->plat[6];
 
     for(int i = 0; i < 3; i++)
     {
@@ -164,28 +158,23 @@ int aGagnerSuperMorpion(superMorpion supPartie)
 {
     /*Renvoie le gagnant 1 = j1; -1 = j2; -10 = egalite; 0 = pas finie*/
     int lignes[3];
+    int collones[3];
+    int diag1 = 0;
+    int diag2 = 0;
     for(int i = 0; i < 3; i++)
     {
         lignes[i] = 0;
-        for(int j = 0; j < 3; j++)
-        {
-            lignes[i] = lignes[i] + supPartie.supPlat[3*i + j].gagnant;
-        }
-    }
-
-    int collones[3];
-    for(int i = 0; i < 3; i++)
-    {
         collones[i] = 0;
         for(int j = 0; j < 3; j++)
         {
+            lignes[i] = lignes[i] + supPartie.supPlat[3*i + j].gagnant;
             collones[i] = collones[i] + supPartie.supPlat[i + 3*j].gagnant;
         }
+        diag1 = diag1 + supPartie.supPlat[i*4].gagnant;
+        diag2 = diag2 + supPartie.supPlat[(i+1)*2].gagnant;
     }
 
-    int diag1 = supPartie.supPlat[0].gagnant + supPartie.supPlat[4].gagnant + supPartie.supPlat[8].gagnant;
-    int diag2 = supPartie.supPlat[2].gagnant + supPartie.supPlat[4].gagnant + supPartie.supPlat[6].gagnant;
-
+    
     for(int i = 0; i < 3; i++)
     {
         if(lignes[i] == 3 || collones[i] == 3)
@@ -374,6 +363,76 @@ coup strategie_alea(superMorpion supPartie)
     return res;
 }
 
+int heuristicMorpion(morpion partie)
+{
+    int res = 0;
+    if(partie.gagnant != 0)
+    {
+        if(partie.gagnant != -10)
+        {
+            res = 24 * partie.gagnant;
+        }
+        
+    }
+    else
+    {
+
+        int lignes[3];
+        int collones[3];
+        int diag1 = 0;
+        int diag2 = 0;
+        for(int i = 0; i < 3; i++)
+        {
+            lignes[i] = 0;
+            collones[i] = 0;
+            for(int j = 0; j < 3; j++)
+            {
+                lignes[i] = lignes[i] + partie.plat[i*3 + j];
+                collones[i] = collones[i] + partie.plat[i + j*3];
+            }
+            diag1 = diag1 + partie.plat[i*4];
+            diag2 = diag2 + partie.plat[(i+1)*2];
+        }
+
+        for(int i = 0; i < 3; i++)
+        {
+            res = res + lignes[i] + collones[i];
+        }
+        res = res + diag1 + diag2;
+
+    }
+    return res;
+
+}
+
+int heuristicSuperMorpion(superMorpion supPartie)
+{
+    int res = 0;
+    int lignes[3];
+    int collones[3];
+    int diag1 = 0;
+    int diag2 = 0;
+    for(int i = 0; i < 3; i++)
+    {
+        lignes[i] = 0;
+        collones[i] = 0;
+        for(int j = 0; j < 3; j++)
+        {
+            lignes[i] = lignes[i] + heuristicMorpion(supPartie.supPlat[i*3 + j]);
+            collones[i] = collones[i] + heuristicMorpion(supPartie.supPlat[i + j*3]);
+        }
+        diag1 = diag1 + heuristicMorpion(supPartie.supPlat[i*4]);
+        diag2 = diag2 + heuristicMorpion(supPartie.supPlat[(i+1)* 2]);
+    }
+
+    for(int i = 0; i < 3; i++)
+    {
+        res = res + lignes[i] + collones[i];
+    }
+    res = res + diag1 + diag2;
+    return res;
+}
+
 int heuristic(superMorpion supPartie)
 {
     int caseJ1 = 0;
@@ -505,11 +564,11 @@ chaine* prochainEtat(superMorpion supPartie)
     return res;
 }
 
-coupMinMax min(chaine* nextState, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
-coupMinMax max(chaine* nextState, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
-coupMinMax min_max(superMorpion supPartie, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
+coupMinMax min(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
+coupMinMax max(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
+coupMinMax min_max(superMorpion supPartie, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff);
 
-coupMinMax max(chaine* nextState, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
+coupMinMax max(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
 {
     coupMinMax res;
     res.move.grand = 0;
@@ -532,9 +591,9 @@ coupMinMax max(chaine* nextState, int joueur, int profondeurActuel, int profonde
   
     while(current != NULL)
     {
-        bool aAff = false;
+        bool aAff = aff;
         //bool aAff = current->val.supPlat[2].plat[8] == 1 && current->val.supPlat[8].plat[6] == -1;
-        int minMax = min_max(current->val, joueur, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), aAff).heuristic;
+        int minMax = min_max(current->val, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), aAff).heuristic;
 
         if(aff)
         {
@@ -547,7 +606,7 @@ coupMinMax max(chaine* nextState, int joueur, int profondeurActuel, int profonde
             //print_supMorpion(current->val)
         }
 
-        if(minMax > res.heuristic)
+        if(minMax >= res.heuristic)
         {
             res.heuristic = minMax;
             res.move.grand = current->grand;
@@ -573,7 +632,7 @@ coupMinMax max(chaine* nextState, int joueur, int profondeurActuel, int profonde
     return res;
 }
 
-coupMinMax min(chaine* nextState, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
+coupMinMax min(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
 {
     coupMinMax res;
     res.move.grand = 0;
@@ -597,9 +656,9 @@ coupMinMax min(chaine* nextState, int joueur, int profondeurActuel, int profonde
 
     while(current != NULL)
     {
-        bool aAff = false;
+        bool aAff = aff;
         //bool aAff = current->val.supPlat[2].plat[8] == 1 && current->val.supPlat[8].plat[6] == -1;
-        int minMax = min_max(current->val, joueur, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), aAff).heuristic;
+        int minMax = min_max(current->val, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), aAff).heuristic;
         if(aff)
         {
             for(int i = 0; i < profondeurActuel; i++)
@@ -609,7 +668,7 @@ coupMinMax min(chaine* nextState, int joueur, int profondeurActuel, int profonde
             printf("min : %d\n", minMax);
             //print_supMorpion(current->val);
         }
-        if(minMax < res.heuristic)
+        if(minMax <= res.heuristic)
         {
             res.heuristic = minMax;
             res.move.grand = current->grand;
@@ -634,10 +693,10 @@ coupMinMax min(chaine* nextState, int joueur, int profondeurActuel, int profonde
     return res;
 }
 
-coupMinMax min_max(superMorpion supPartie, int joueur, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
+coupMinMax min_max(superMorpion supPartie, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion), bool aff)
 {
     coupMinMax res;
-    if(supPartie.tour*joueur == 1)
+    if(supPartie.tour == 1)
     {
         if(aGagnerSuperMorpion(supPartie) != 0)
         {
@@ -654,7 +713,7 @@ coupMinMax min_max(superMorpion supPartie, int joueur, int profondeurActuel, int
         else
         {
             chaine* c = prochainEtat(supPartie);
-            res = max(c, joueur, profondeurActuel, profondeurMax, currentMinMax, (*heur), aff);
+            res = max(c, profondeurActuel, profondeurMax, currentMinMax, (*heur), aff);
             freeChaine(c);
         }
 
@@ -676,7 +735,7 @@ coupMinMax min_max(superMorpion supPartie, int joueur, int profondeurActuel, int
         else
         {
             chaine* c = prochainEtat(supPartie);
-            res = min(c, joueur, profondeurActuel, profondeurMax, currentMinMax, (*heur), aff);
+            res = min(c, profondeurActuel, profondeurMax, currentMinMax, (*heur), aff);
             freeChaine(c);
         }
     }
@@ -778,13 +837,14 @@ int partie(superMorpion supPartie, bool aAff)
         coup nextCoup;
         if(supPartie.tour == 1)
         {
-            nextCoup =  min_max(supPartie, 1, 0, 3, INT_MAX, heuristicAlea100, false).move;
+            nextCoup =  min_max(supPartie, 0, 4, INT_MAX, heuristic, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
         else
         {
-            nextCoup =  min_max(supPartie, -1, 0, 6, INT_MIN, heuristicAlea10, false).move;
+            nextCoup =  min_max(supPartie, 0, 4, INT_MIN, heuristicSuperMorpion, false).move;
+            //printf("Heuristic : %d\n", heuristicSuperMorpion(supPartie));
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
         }
@@ -804,9 +864,10 @@ int partie(superMorpion supPartie, bool aAff)
         supPartie.tour = supPartie.tour * (-1);
         if(aAff)
         {
-            
+            int att;
             print_supMorpion(supPartie);
             printf("\n\n");
+            //scanf("%d", &att);
         }
     }
 
@@ -861,7 +922,7 @@ int main()
     t1 = clock();
 
     srand(time(NULL));
-    parties(5, true);
+    parties(1, true);
 
     t2 = clock();
     temps = (float)(t2-t1)/CLOCKS_PER_SEC;
