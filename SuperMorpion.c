@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <time.h>
+#include <string.h>
 
 #define taille 9
 
@@ -473,7 +474,7 @@ int partieAlea(superMorpion supPartie, bool aAff);
 int heuristicAlea10(superMorpion supPartie)
 {
     int score = 0;
-    for(int k = 0; k < 5; k++)
+    for(int k = 0; k < 10; k++)
     {
         int res = partieAlea(supPartie, false);
         if(res != -10)
@@ -488,7 +489,7 @@ int heuristicAlea10(superMorpion supPartie)
 int heuristicAlea100(superMorpion supPartie)
 {
     int score = 0;
-    for(int k = 0; k < 50; k++)
+    for(int k = 0; k < 100; k++)
     {
         int res = partieAlea(supPartie, false);
         if(res != -10)
@@ -496,6 +497,19 @@ int heuristicAlea100(superMorpion supPartie)
             score = score + res;
         }
         
+    }
+    return score;
+}
+
+int heuristicPara(superMorpion supPartie, int para[81])
+{
+    int score = 0; 
+    for(int i = 0; i < 9; i++)
+    {
+        for(int j = 0; j < 9; j++)
+        {
+            score = score + (supPartie.supPlat[i].plat[j]*para[i*9 + j]);
+        }
     }
     return score;
 }
@@ -740,17 +754,188 @@ coupMinMax min_max(superMorpion supPartie, int profondeurActuel, int profondeurM
         }
     }
 
-
-    if(res.move.grand == -1 || res.move.petit == -1)
-    {
-        printf("Slt\n");
-    }
     return res;
 }
 
 
+coupMinMax minPara(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81], bool aff);
+coupMinMax maxPara(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81], bool aff);
+coupMinMax min_maxPara(superMorpion supPartie, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81], bool aff);
 
+coupMinMax maxPara(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81], bool aff)
+{
+    coupMinMax res;
+    res.move.grand = 0;
+    res.move.petit = 0;
+    res.heuristic = INT_MIN;
+    maillon* current = nextState->first;
+    if(current == NULL)
+    {
+        printf("Max vide\n");
+    }
 
+    if(aff)
+    {
+        for(int i = 0; i < profondeurActuel; i++)
+        {
+            printf(" - ");
+        }
+        printf("Max\n");
+    }
+  
+    while(current != NULL)
+    {
+        bool aAff = aff;
+        //bool aAff = current->val.supPlat[2].plat[8] == 1 && current->val.supPlat[8].plat[6] == -1;
+        int minMax = min_maxPara(current->val, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), para, aAff).heuristic;
+
+        if(aff)
+        {
+            
+            for(int i = 0; i < profondeurActuel; i++)
+            {
+                printf(" - ");
+            }
+            printf("max : %d\n", minMax);
+            //print_supMorpion(current->val)
+        }
+
+        if(minMax >= res.heuristic)
+        {
+            res.heuristic = minMax;
+            res.move.grand = current->grand;
+            res.move.petit = current->petit;
+            
+        }
+        if(res.heuristic > currentMinMax)
+        {
+            break;
+        }
+        current = current->next;
+    }
+    if(aff)
+    {
+        for(int i = 0; i < profondeurActuel; i++)
+        {
+            printf(" - ");
+        }
+        printf("Fin max : %d\n", res.heuristic);
+    }
+  
+    
+    return res;
+}
+
+coupMinMax minPara(chaine* nextState, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81],  bool aff)
+{
+    coupMinMax res;
+    res.move.grand = 0;
+    res.move.petit = 0;
+    res.heuristic = INT_MAX;
+    maillon* current = nextState->first;
+
+    if(current == NULL)
+    {
+        printf("Min vide\n");
+    }
+
+    if(aff)
+    {
+        for(int i = 0; i < profondeurActuel; i++)
+        {
+            printf(" - ");
+        }
+        printf("Min\n");
+    }
+
+    while(current != NULL)
+    {
+        bool aAff = aff;
+        //bool aAff = current->val.supPlat[2].plat[8] == 1 && current->val.supPlat[8].plat[6] == -1;
+        int minMax = min_maxPara(current->val, profondeurActuel +1, profondeurMax, res.heuristic, (*heur), para, aAff).heuristic;
+        if(aff)
+        {
+            for(int i = 0; i < profondeurActuel; i++)
+            {
+                printf(" - ");
+            }
+            printf("min : %d\n", minMax);
+            //print_supMorpion(current->val);
+        }
+        if(minMax <= res.heuristic)
+        {
+            res.heuristic = minMax;
+            res.move.grand = current->grand;
+            res.move.petit = current->petit;
+         
+        }
+        if(res.heuristic < currentMinMax)
+        {
+            break;
+        }
+        current = current->next;
+    }
+    if(aff)
+    {
+        for(int i = 0; i < profondeurActuel; i++)
+        {
+            printf(" - ");
+        }
+        printf("Fin min : %d\n", res.heuristic);
+    }
+
+    return res;
+}
+
+coupMinMax min_maxPara(superMorpion supPartie, int profondeurActuel, int profondeurMax, int currentMinMax, int (*heur)(superMorpion, int[81]), int para[81], bool aff)
+{
+    coupMinMax res;
+    if(supPartie.tour == 1)
+    {
+        if(aGagnerSuperMorpion(supPartie) != 0)
+        {
+            res.move.petit = 0;
+            res.move.grand = 0;
+            res.heuristic = INT_MIN;
+        }
+        else if(profondeurActuel == profondeurMax)
+        {
+            res.move.petit = 0;
+            res.move.grand = 0;
+            res.heuristic = (*heur)(supPartie, para);
+        }
+        else
+        {
+            chaine* c = prochainEtat(supPartie);
+            res = maxPara(c, profondeurActuel, profondeurMax, currentMinMax, (*heur), para, aff);
+            freeChaine(c);
+        }
+
+    }
+    else
+    {
+        if(aGagnerSuperMorpion(supPartie) != 0)
+        {
+            res.move.petit = 0;
+            res.move.grand = 0;
+            res.heuristic = INT_MAX;
+        }
+        else if(profondeurActuel == profondeurMax)
+        {
+            res.move.petit = 0;
+            res.move.grand = 0;
+            res.heuristic = (*heur)(supPartie, para);
+        }
+        else
+        {
+            chaine* c = prochainEtat(supPartie);
+            res = minPara(c, profondeurActuel, profondeurMax, currentMinMax, (*heur),para, aff);
+            freeChaine(c);
+        }
+    }
+
+    return res;
+}
 
 //------------------------Simulation---------------------------------
 superMorpion initiale() 
@@ -829,24 +1014,63 @@ int partie(superMorpion supPartie, bool aAff)
         print_supMorpion(supPartie);
         printf("\n\n");
     }
+    int nbr_coup1 = 0;
+    int nbr_coup2 = 0;
+    float tempsj1 = 0;
+    float tempsj2 = 0;
     
    
 
     while(supPartie.gagnant == 0)
     {
+        float temps;
+        clock_t t1, t2;
+        
         coup nextCoup;
+
         if(supPartie.tour == 1)
         {
-            nextCoup =  min_max(supPartie, 0, 4, INT_MAX, heuristic, false).move;
+            if(aAff)
+            {
+                t1 = clock();
+            }
+
+            nextCoup =  min_max(supPartie, 0, 4, INT_MAX, heuristicAlea100, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj1 = tempsj1 + temps;
+                nbr_coup1++;
+                printf("temps du coup = %f\n", temps);
+            }
+            
         }
         else
         {
-            nextCoup =  min_max(supPartie, 0, 4, INT_MIN, heuristicSuperMorpion, false).move;
-            //printf("Heuristic : %d\n", heuristicSuperMorpion(supPartie));
+            if(aAff)
+            {
+                t1 = clock();
+            }
+
+            nextCoup =  min_max(supPartie, 0, 4, INT_MIN, heuristicAlea100, false).move;
             //nextCoup = strategie_alea(supPartie);
             //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj2 = tempsj2 + temps;
+                nbr_coup2++;
+                printf("temps du coup = %f\n", temps);
+            }
+
         }
         supPartie.supPlat[nextCoup.grand].plat[nextCoup.petit] = supPartie.tour;
         majGagnant(&supPartie.supPlat[nextCoup.grand]);
@@ -870,7 +1094,8 @@ int partie(superMorpion supPartie, bool aAff)
             //scanf("%d", &att);
         }
     }
-
+    printf("Temps moyen j1 = %f\n", tempsj1/nbr_coup1);
+    printf("Temps moyen j2 = %f\n", tempsj2/nbr_coup2);
     return supPartie.gagnant;
 
 
@@ -901,6 +1126,372 @@ void parties(int nb_parties, bool aAff)
     printf("j1 : %d\nj2 : %d\nnulle : %d\n", j1, j2, nulle);
 }
 
+int partieMoitePara(superMorpion supPartie, bool aAff, int para1[81])
+{
+    
+    
+    if(aAff)
+    {
+        print_supMorpion(supPartie);
+        printf("\n\n");
+    }
+    int nbr_coup1 = 0;
+    int nbr_coup2 = 0;
+    float tempsj1 = 0;
+    float tempsj2 = 0;
+    
+   
+
+    while(supPartie.gagnant == 0)
+    {
+        float temps;
+        clock_t t1, t2;
+        
+        coup nextCoup;
+
+        if(supPartie.tour == 1)
+        {
+            if(aAff)
+            {
+                t1 = clock();
+            }
+            //nextCoup =  min_max(supPartie, 0, 4, INT_MAX, heuristicAlea100, false).move; 
+            nextCoup =  min_maxPara(supPartie, 0, 4, INT_MAX, heuristicPara,para1, false).move;
+            //nextCoup = strategie_alea(supPartie);
+            //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj1 = tempsj1 + temps;
+                nbr_coup1++;
+                printf("temps du coup = %f\n", temps);
+            }
+        }
+        else
+        {
+            if(aAff)
+            {
+                t1 = clock();
+            }
+            nextCoup =  min_max(supPartie, 0, 4, INT_MIN, heuristicAlea100, false).move;
+            //nextCoup =  min_maxPara(supPartie, 0, 4, INT_MIN, heuristicPara, para1, false).move;
+            //nextCoup = strategie_alea(supPartie);
+            //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj2 = tempsj2 + temps;
+                nbr_coup2++;
+                printf("temps du coup = %f\n", temps);
+            }
+        }
+        supPartie.supPlat[nextCoup.grand].plat[nextCoup.petit] = supPartie.tour;
+        majGagnant(&supPartie.supPlat[nextCoup.grand]);
+
+        supPartie.gagnant = aGagnerSuperMorpion(supPartie);
+
+        if(supPartie.supPlat[nextCoup.petit].gagnant == 0)
+        {
+            supPartie.ouJoue = nextCoup.petit;
+        }
+        else
+        {
+            supPartie.ouJoue = -1;
+        }
+        supPartie.tour = supPartie.tour * (-1);
+        if(aAff)
+        {
+            int att;
+            print_supMorpion(supPartie);
+            printf("\n\n");
+            //scanf("%d", &att);
+        }
+    }
+
+    if(aAff) 
+    {
+        printf("Temps moyen j1 = %f\n", tempsj1/nbr_coup1);
+        printf("Temps moyen j2 = %f\n", tempsj2/nbr_coup2);
+    }
+    return supPartie.gagnant;
+
+
+}
+
+int partiePara(superMorpion supPartie, bool aAff, int para1[81], int para2[81])
+{
+    
+    
+    if(aAff)
+    {
+        print_supMorpion(supPartie);
+        printf("\n\n");
+    }
+    int nbr_coup1 = 0;
+    int nbr_coup2 = 0;
+    float tempsj1 = 0;
+    float tempsj2 = 0;
+    
+   
+
+    while(supPartie.gagnant == 0)
+    {
+        float temps;
+        clock_t t1, t2;
+        
+        coup nextCoup;
+
+        if(supPartie.tour == 1)
+        {
+            if(aAff)
+            {
+                t1 = clock();
+            }
+
+            nextCoup =  min_maxPara(supPartie, 0, 4, INT_MAX, heuristicPara,para1, false).move;
+            //nextCoup = strategie_alea(supPartie);
+            //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj1 = tempsj1 + temps;
+                nbr_coup1++;
+                printf("temps du coup = %f\n", temps);
+            }
+        }
+        else
+        {
+            if(aAff)
+            {
+                t1 = clock();
+            }
+
+            nextCoup =  min_maxPara(supPartie, 0, 4, INT_MAX, heuristicPara, para2, false).move;
+            //nextCoup = strategie_alea(supPartie);
+            //nextCoup = strategie_utilisateur(supPartie);
+
+
+            if(aAff)
+            {
+                t2 = clock();
+                temps = (float)(t2-t1)/CLOCKS_PER_SEC;
+                tempsj2 = tempsj2 + temps;
+                nbr_coup2++;
+                printf("temps du coup = %f\n", temps);
+            }
+        }
+        supPartie.supPlat[nextCoup.grand].plat[nextCoup.petit] = supPartie.tour;
+        majGagnant(&supPartie.supPlat[nextCoup.grand]);
+
+        supPartie.gagnant = aGagnerSuperMorpion(supPartie);
+
+        if(supPartie.supPlat[nextCoup.petit].gagnant == 0)
+        {
+            supPartie.ouJoue = nextCoup.petit;
+        }
+        else
+        {
+            supPartie.ouJoue = -1;
+        }
+        supPartie.tour = supPartie.tour * (-1);
+        if(aAff)
+        {
+            int att;
+            print_supMorpion(supPartie);
+            printf("\n\n");
+            //scanf("%d", &att);
+        }
+    }
+
+    if(aAff) 
+    {
+        printf("Temps moyen j1 = %f\n", tempsj1/nbr_coup1);
+        printf("Temps moyen j2 = %f\n", tempsj2/nbr_coup2);
+    }
+    return supPartie.gagnant;
+
+
+}
+
+void initAlea(int para[81])
+{
+    for(int i = 0; i < 81; i++)
+    {
+        para[i] = rand() - (RAND_MAX/2);
+    }
+}
+
+void majValeur(int para1[81], int para2[81])
+{
+
+    for(int i = 0; i < 81; i++)
+    {
+        para1[i] = para2[i];
+    }
+}
+
+int* meilleurPara(int aGarder, int nb_participants, int* nb_gagne)
+{
+    int* res = malloc(sizeof(int)*aGarder);
+    int* nb_gagneRes = malloc(sizeof(int)*aGarder);
+    for(int i = 0; i < aGarder; i++)
+    {
+        res[i] = 0;
+        nb_gagneRes[i] = 0;
+    }
+
+
+    for(int i = 0; i < nb_participants; i++)
+    {
+        int j = aGarder - 1;
+        while(j >= 0 && nb_gagne[i] >= nb_gagneRes[j])
+        {
+            if(j != aGarder - 1)
+            {
+                res[j+1] = res[j];
+                nb_gagneRes[j+1] = nb_gagneRes[j];
+            }
+            j--;
+        }
+        j++;
+        if(j != aGarder)
+        {
+            res[j] = i;
+            nb_gagneRes[j] = nb_gagne[i];
+        }
+    }
+    free(nb_gagneRes);
+    return res;
+
+}
+
+int* derivePara(int paraADerive[81], int paraCible[81])
+{
+
+}
+
+int* apprentissage(int nb_evolutions, int nb_participants, int essai)
+{
+    int* res = malloc(sizeof(int) * 81);
+
+    int** paras = malloc(sizeof(int*) * nb_participants);
+    int* nb_gagne = malloc(sizeof(int) * (nb_participants + 1));
+
+    int aGarder = 0.2 * nb_participants;
+    int nb_evol = 0 * nb_participants;
+    int nb_nouveau = nb_participants - (aGarder + nb_evol);
+
+    for(int i = 0; i < nb_participants; i++)
+    {
+        paras[i] = malloc(sizeof(int) * 81);
+        nb_gagne[i] = 0;
+        initAlea(paras[i]);
+    }
+
+    for(int i = 0; i < nb_evolutions; i++)
+    {
+        printf("---------Evol------------ / %d\n\n", i);
+        for(int j =1; j < nb_participants; j++)
+        {
+            for(int k = j; k < nb_participants; k++)
+            {
+                int resPartie = partiePara(initiale(), false, paras[j], paras[k]);
+                if(resPartie == 1)
+                {
+                    nb_gagne[j]++;
+                }
+                else if(resPartie == -1)
+                {
+                    nb_gagne[k]++;
+                }
+                else
+                {
+                    nb_gagne[nb_participants]++;
+                }
+            }
+        }
+        int* garde = meilleurPara(aGarder, nb_participants, nb_gagne);
+        for(int i = 0; i < aGarder; i++)
+        {
+            majValeur(paras[i],paras[garde[i]]);
+        }
+        for(int i = aGarder; i < nb_participants; i++)
+        {
+            initAlea(paras[i]);
+        }
+        free(garde);
+
+        for(int i = 0; i < nb_participants; i++)
+        {
+            nb_gagne[i] = 0;
+        }
+
+
+    }
+    majValeur(res, paras[0]);
+
+    for(int i = 0; i < nb_participants; i++)
+    {
+
+        free(paras[i]);
+    }
+    free(paras);
+    free(nb_gagne);
+
+    const char * nom = "Essai";
+    char *num;
+    char nomFichier[100];
+    if (asprintf(&num, "%d", essai) == -1) {
+        perror("asprintf");
+    } else {
+        strcat(strcpy(nomFichier, nom), num);
+        free(num);
+    }
+
+    FILE* f = fopen(nomFichier, "w");
+    for(int i = 0; i < 81; i++)
+    {
+        fprintf(f, "%d\n", res[i]);
+    }
+    fclose(f);
+
+    return res;
+}
+
+void partiesPara(int nb_parties, bool aAff, int para1[81], int para2[81])
+{
+    int j1 = 0;
+    int j2 = 0;
+    int nulle = 0;
+    for(int i = 0; i < nb_parties; i++)
+    {
+        int res = partiePara(initiale(),aAff, para1, para1);
+        if(res == 1)
+        {
+            j1++;
+        }
+        else if(res == -1)
+        {
+            j2++;
+        }
+        else
+        {
+            nulle++;
+        }
+    }
+
+    printf("j1 : %d\nj2 : %d\nnulle : %d\n", j1, j2, nulle);
+}
+
 void print_prochain(superMorpion supPartie)
 {
     chaine* next = prochainEtat(supPartie);
@@ -914,18 +1505,33 @@ void print_prochain(superMorpion supPartie)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    float temps;
+    
+    float temps, tempsApprentissage;
     clock_t t1, t2;
 
     t1 = clock();
 
     srand(time(NULL));
-    parties(1, true);
+    
+    //-----------------------------------
+    //int nb_essai;
+    //sscanf(argv[1], "%d", &nb_essai);
+    int* meilleur100 = apprentissage(100, 5, 0);
+    int* meilleur10 = apprentissage(10, 5, 1);
+    t2 = clock();
+    tempsApprentissage = (float)(t2-t1)/CLOCKS_PER_SEC;
+    
+    t1 = clock();
+    printf("Le joueur %d a gagne\n", partiePara(initiale(), true, meilleur100, meilleur10));
+
+    //-----------------------------------
 
     t2 = clock();
     temps = (float)(t2-t1)/CLOCKS_PER_SEC;
-    printf("temps = %f\n", temps);
+    printf("temps de la partie = %f\n", temps);
+    printf("temps de l'apprentssage = %f\n", tempsApprentissage);
+
 
 }
